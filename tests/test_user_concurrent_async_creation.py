@@ -18,10 +18,10 @@ pytestmark = [
 @pytest.mark.contract
 @pytest.mark.parametrize("concurrent_users", [5, 10, 20])
 async def test_concurrent_user_creation(
-        async_api_client,
-        user_factory,
-        register_async_user,
-        concurrent_users,
+    async_api_client,
+    user_factory,
+    register_async_user,
+    concurrent_users,
 ):
     """
     Verify that the Users API correctly handles concurrent user creation requests.
@@ -77,4 +77,6 @@ async def test_concurrent_user_creation(
         "Duplicate user IDs detected during concurrent creation"
     )
 
-    logger.info(f"Concurrent user creation test for {concurrent_users} users completed successfully")
+    logger.info(
+        f"Concurrent user creation test for {concurrent_users} users completed successfully"
+    )

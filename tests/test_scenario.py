@@ -24,9 +24,7 @@ def test_create_and_fetch_user_scenario(api_client, register_sync_user):
     logger.debug(f"User data: {user_data}")
 
     # Step 1: create user
-    created_user = api_client.create_user(
-        user_data
-    )
+    created_user = api_client.create_user(user_data)
 
     logger.debug(f"Created user: {created_user}")
 

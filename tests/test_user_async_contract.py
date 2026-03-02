@@ -11,9 +11,7 @@ logger = get_logger(__name__)
 @pytest.mark.asyncio
 @pytest.mark.contract
 async def test_async_user_create_and_validate(
-        async_api_client,
-        user_factory,
-        register_async_user
+    async_api_client, user_factory, register_async_user
 ):
     """
     Async contract test:

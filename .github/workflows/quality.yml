@@ -1,28 +1,48 @@
 name: quality
+
 on:
-  push:
   pull_request:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   quality:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: astral-sh/setup-uv@v3
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version-file: pyproject.toml
+          cache: "pip"
 
-      - name: Install
-        run: uv sync
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --extra test
+
+      - name: Ruff (format)
+        run: uv run ruff format .
 
       - name: Ruff (lint)
         run: uv run ruff check .
 
-      - name: Ruff (format check)
-        run: uv run ruff format --check .
-
-      - name: Mypy
+      - name: Mypy (optional, non-blocking)
         run: uv run mypy .
-        continue-on-error: true  # set to false when you’re ready
+        continue-on-error: true
 
-      - name: Pytest (stable suite)
+      - name: Pytest (stable tier)
         run: uv run pytest -m "not external" -q

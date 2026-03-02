@@ -14,9 +14,9 @@ pytestmark = [
 @pytest.mark.contract
 @pytest.mark.edge
 async def test_sequential_user_dependencies(
-        async_api_client,
-        user_factory,
-        register_async_user,
+    async_api_client,
+    user_factory,
+    register_async_user,
 ):
     """
     Optional workflow test: simulate dependent operations that could trigger edge cases.

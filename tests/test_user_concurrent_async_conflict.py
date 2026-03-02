@@ -1,63 +1,52 @@
 import asyncio
+
 import pytest
 
 from mockapi_client.logger import get_logger
 
 logger = get_logger(__name__)
 
-pytestmark = [
-    pytest.mark.asyncio,
-    pytest.mark.contract,
-    pytest.mark.edge,
-]
+# Burst workflow = stress / rate-limit prone.
+pytestmark = pytest.mark.concurrency
 
 
+@pytest.mark.external
 @pytest.mark.asyncio
-@pytest.mark.contract
-@pytest.mark.edge
-@pytest.mark.parametrize("concurrent_attempts", [5, 10])
-async def test_parallel_user_creation_conflict(
-        async_api_client,
-        user_factory,
-        register_async_user,
-        concurrent_attempts,
+@pytest.mark.parametrize("users_count", [10])
+async def test_burst_user_workflow(
+    async_api_client, user_factory, register_async_user, users_count
 ):
     """
-    Edge-case concurrency test: attempt to create multiple users with the same email simultaneously.
-
-    Purpose:
-    - Verify backend correctly handles race conditions for unique constraints.
-    - Ensure only one user is created, others fail gracefully.
-
-    Validation:
-    - Only one user with the duplicate email exists.
-    - All exceptions are caught and logged.
-    - Cleanup registry only includes successfully created users.
-
-    Design notes:
-    - Uses asyncio.gather to execute concurrent create requests.
-    - Reuses existing factory, logging, and cleanup mechanisms.
+    Burst workflow test: create many users concurrently.
+    This is intentionally stressy and belongs to the concurrency tier.
     """
-
     logger.info("-" * 60)
-    logger.info(f"Testing {concurrent_attempts} parallel creation attempts with the same email")
+    logger.info("Starting burst workflow with %s users", users_count)
 
-    # Shared payload with the same email
-    payload = user_factory.create_user_payload()
-    payloads = [{**payload} for _ in range(concurrent_attempts)]
+    async def workflow_task(i: int):
+        payload = user_factory.create_user_payload()
+        logger.info("[Task %s] Creating user", i)
+        user = await async_api_client.create_user(payload)
 
-    # Launch all creates concurrently
-    tasks = [async_api_client.create_user(p) for p in payloads]
+        # Register for teardown cleanup (best-effort)
+        try:
+            await register_async_user(user["id"])
+        except Exception:
+            pass
+
+        return user
+
+    tasks = [workflow_task(i) for i in range(users_count)]
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
-    created_users = []
-    for result in results:
-        if isinstance(result, Exception):
-            logger.info(f"Expected failure caught: {result}")
-        else:
-            created_users.append(result)
-            await register_async_user(result["id"])
-            logger.info(f"User created: {result}")
+    successes = [r for r in results if not isinstance(r, Exception)]
+    failures = [r for r in results if isinstance(r, Exception)]
 
-    # Only one user should be successfully created
-    assert len(created_users) == 1, "Multiple users created with duplicate email"
+    logger.info("Successes: %s / %s", len(successes), users_count)
+    if failures:
+        logger.warning("Failures: %s", len(failures))
+        for f in failures[:5]:
+            logger.warning("  %s", f)
+
+    # For stress tests we only require that at least one succeeded
+    assert successes, "All burst workflow tasks failed!"

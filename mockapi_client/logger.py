@@ -1,8 +1,10 @@
 import logging
+from typing import Optional
+
 import colorlog
 
 
-def get_logger(name: str = __name__, level: int = None) -> logging.Logger:
+def get_logger(name: str = __name__, level: Optional[int] = None) -> logging.Logger:
     logger = logging.getLogger(name)
 
     # If no level is provided, it inherits from the parent (the root logger)
@@ -34,9 +36,12 @@ def get_logger(name: str = __name__, level: int = None) -> logging.Logger:
         formatter = colorlog.ColoredFormatter(
             fmt,
             log_colors={
-                "DEBUG": "cyan", "INFO": "green",
-                "WARNING": "yellow", "ERROR": "red", "CRITICAL": "bold_red",
-            }
+                "DEBUG": "cyan",
+                "INFO": "green",
+                "WARNING": "yellow",
+                "ERROR": "red",
+                "CRITICAL": "bold_red",
+            },
         )
         handler.setFormatter(formatter)
         logger.addHandler(handler)
@@ -46,4 +51,3 @@ def get_logger(name: str = __name__, level: int = None) -> logging.Logger:
         logger.propagate = False
 
     return logger
-
