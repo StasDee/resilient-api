@@ -15,11 +15,7 @@ pytestmark = [
 @pytest.mark.asyncio
 @pytest.mark.contract
 @pytest.mark.edge
-async def test_patch_before_fetch(
-        async_api_client,
-        user_factory,
-        register_async_user
-):
+async def test_patch_before_fetch(async_api_client, user_factory, register_async_user):
     """
     Edge-case workflow test: patch a user immediately after creation
     without fetching it first.

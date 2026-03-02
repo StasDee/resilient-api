@@ -1,18 +1,63 @@
 name: external-integration
+
 on:
   workflow_dispatch:
+    inputs:
+      include_concurrency:
+        description: "Also run concurrency/stress tests (rate-limit prone)"
+        required: false
+        default: "false"
   schedule:
-    - cron: "0 3 * * *"  # nightly
+    # Nightly at 03:00 UTC
+    - cron: "0 3 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: external-integration-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   external:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v3
-      - name: Install
-        run: uv sync
+    continue-on-error: true
 
-      - name: External integration tests (flaky upstream)
-        run: uv run pytest -m external -q
-        continue-on-error: true
+    env:
+      BASE_URL: ${{ secrets.BASE_URL }}
+      API_TOKEN: ${{ secrets.API_TOKEN }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version-file: pyproject.toml
+          cache: "pip"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --extra test
+
+      - name: External integration tests (scheduled excludes stress)
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "schedule" ]]; then
+            echo "Running scheduled external tests (excluding concurrency)..."
+            uv run pytest -m "external and not concurrency" -q
+            exit 0
+          fi
+
+          if [[ "${{ github.event.inputs.include_concurrency }}" == "true" ]]; then
+            echo "Manual run including concurrency..."
+            uv run pytest -m "external" -q
+          else
+            echo "Manual run excluding concurrency..."
+            uv run pytest -m "external and not concurrency" -q
+          fi

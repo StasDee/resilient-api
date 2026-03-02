@@ -8,6 +8,7 @@ logger = get_logger(__name__)
 # Positive CRUD Tests
 # -------------------------
 
+
 @pytest.mark.contract
 @pytest.mark.parametrize("index", range(5))
 def test_user_crud_lifecycle(api_client, user_factory, register_sync_user, index):

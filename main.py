@@ -4,11 +4,8 @@ from mockapi_client.factory import UserFactory
 
 logger = get_logger(__name__)
 
-def user_scenario(
-        api: UsersApiClient,
-        factory: UserFactory,
-        count: int = 5
-):
+
+def user_scenario(api: UsersApiClient, factory: UserFactory, count: int = 5):
     """
     Orchestrates the lifecycle for multiple users.
     """
@@ -31,8 +28,10 @@ def user_scenario(
         # GET
         fetched = api.get_user(user_id)
         logger.info(f"Fetched user: {fetched}")
-        assert fetched and fetched["name"] == payload["name"], f"Verification failed for {user_id}"
-        logger.info(f"Creation - Fetching success")
+        assert fetched and fetched["name"] == payload["name"], (
+            f"Verification failed for {user_id}"
+        )
+        logger.info("Creation - Fetching success")
     logger.info("-" * 60)
     logger.info("All users successfully created and verified.")
     logger.info("-" * 60)
@@ -43,7 +42,9 @@ def user_scenario(
         logger.info(f"--- Step 2: Patching user {target_id} ---")
         patch_data = {"name": "renamed_user"}
         patched = api.patch_user(target_id, patch_data)
-        assert patched["name"] == "renamed_user", f"Rename user: {created_ids[0]} to renamed_user failed"
+        assert patched["name"] == "renamed_user", (
+            f"Rename user: {created_ids[0]} to renamed_user failed"
+        )
         logger.info(f"Patched user: {patched}")
         logger.info(f"User {target_id} successfully renamed to name: renamed_user")
 

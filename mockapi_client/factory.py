@@ -24,10 +24,7 @@ class UserFactory:
         Fields passed in `overrides` will replace the defaults.
         """
         username = self._generate_unique_name()
-        base_payload = {
-            "name": username,
-            "email": f"{username}@example.com"
-        }
+        base_payload = {"name": username, "email": f"{username}@example.com"}
         return base_payload | overrides
 
     def reset(self):

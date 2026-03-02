@@ -3,7 +3,7 @@ name = "mockapi-users-client"
 version = "1.0.0"
 description = "Production-style REST API client for MockAPI"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.12,<3.13"
 authors = [
     { name = "Stanislav Dmytrenko", email = "stas1235@gmail.com" }
 ]
@@ -20,11 +20,14 @@ dependencies = [
 test = [
     "pytest>=7.0",
     "pytest-xdist>=3.0",
-    "pytest-asyncio>=0.21.0"
+    "pytest-asyncio>=0.21.0",
+    "ruff",
+    "mypy",
+    "types-requests",
 ]
 
 [project.urls]
-Repository = "https://github.com/StasDee/ResilientAPI"
+Repository = "https://github.com/StasDee/resilient-api"
 
 [build-system]
 requires = ["setuptools>=61.0"]
@@ -36,30 +39,34 @@ packages = [
     "core"
 ]
 
-
 [tool.pytest.ini_options]
 minversion = "7.0"
-addopts = "-ra -s -v --log-cli-level=DEBUG --tb=short"
+addopts = "-v --tb=line"
 testpaths = ["tests"]
 markers = [
+    "external: tests that hit the real external API (excluded from PR 'quality' by default)",
     "contract: mark a test as a contract test",
     "scenario: mark a test as a scenario test",
     "concurrency: marks tests as concurrency tests",
     "asyncio: marks tests as async tests",
-    "edge: mark a test as an edge case test"
+    "edge: mark a test as an edge case test",
 ]
 
-[tool.mypy]
-python_version = "3.9"
-warn_return_any = true
-warn_unused_ignores = true
-disallow_untyped_defs = false
-no_implicit_optional = true
-check_untyped_defs = true
-ignore_missing_imports = true
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+extend-exclude = [
+    ".venv",
+    "build",
+    "dist",
+]
+
+[tool.ruff.lint]
+# Minimal linting to keep CI stable while still catching real issues.
+select = ["F"]
 
 [tool.mypy]
-python_version = "3.9"
+python_version = "3.12"
 warn_return_any = true
 warn_unused_ignores = true
 disallow_untyped_defs = false

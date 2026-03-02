@@ -1,8 +1,14 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from mockapi_client.logger import get_logger
+
 import pytest
 
+from mockapi_client.logger import get_logger
+
 logger = get_logger(__name__)
+
+# This test intentionally creates load -> rate limiting (429) is expected sometimes.
+pytestmark = pytest.mark.concurrency
+
 
 @pytest.mark.contract
 def test_concurrent_user_creation(api_client, user_factory, register_sync_user):

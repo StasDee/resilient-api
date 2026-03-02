@@ -5,11 +5,7 @@ logger = get_logger(__name__)
 
 
 @pytest.mark.scenario
-def test_users_end_to_end_scenario(
-        api_client,
-        user_factory,
-        register_sync_user
-):
+def test_users_end_to_end_scenario(api_client, user_factory, register_sync_user):
     logger.info("Starting end-to-end scenario test")
     count = 5
 
@@ -39,5 +35,6 @@ def test_users_end_to_end_scenario(
         # Patch user
         patched = api_client.patch_user(user_id, {"name": f"renamed_{index}"})
         logger.info(f"User: {user_id} patched: {patched}")
-        assert patched["name"] == f"renamed_{index}", (f"Expected name to be renamed_{index}"
-                                                       f" but got {patched['name']}")
+        assert patched["name"] == f"renamed_{index}", (
+            f"Expected name to be renamed_{index} but got {patched['name']}"
+        )
