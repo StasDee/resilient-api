@@ -48,3 +48,21 @@ markers = [
     "asyncio: marks tests as async tests",
     "edge: mark a test as an edge case test"
 ]
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_ignores = true
+disallow_untyped_defs = false
+no_implicit_optional = true
+check_untyped_defs = true
+ignore_missing_imports = true
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_ignores = true
+disallow_untyped_defs = false
+no_implicit_optional = true
+check_untyped_defs = true
+ignore_missing_imports = true
