@@ -22,7 +22,7 @@ jobs:
   smoke:
     name: Smoke — secrets & connectivity
     runs-on: ubuntu-latest
-    continue-on-error: true
+    continue-on-error: false
 
     env:
       BASE_URL: ${{ secrets.BASE_URL }}
@@ -71,7 +71,7 @@ jobs:
   external-signal:
     name: External — signal (no stress)
     runs-on: ubuntu-latest
-    continue-on-error: true
+    continue-on-error: false
     needs: [smoke]
 
     env:
@@ -106,7 +106,7 @@ jobs:
   concurrency:
     name: External — concurrency/stress (manual only)
     runs-on: ubuntu-latest
-    continue-on-error: true
+    continue-on-error: false
     needs: [external-signal]
 
     if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.include_concurrency == 'true' }}
