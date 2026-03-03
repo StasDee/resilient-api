@@ -19,7 +19,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  external:
+  smoke:
+    name: Smoke — secrets & connectivity
     runs-on: ubuntu-latest
     continue-on-error: true
 
@@ -28,14 +29,12 @@ jobs:
       API_TOKEN: ${{ secrets.API_TOKEN }}
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
           python-version-file: pyproject.toml
-          cache: "pip"
 
       - name: Install uv
         uses: astral-sh/setup-uv@v7
@@ -45,19 +44,98 @@ jobs:
       - name: Install dependencies
         run: uv sync --extra test
 
-      - name: External integration tests (scheduled excludes stress)
+      - name: Check secrets present
         shell: bash
         run: |
-          if [[ "${{ github.event_name }}" == "schedule" ]]; then
-            echo "Running scheduled external tests (excluding concurrency)..."
-            uv run pytest -m "external and not concurrency" -q
+          if [[ -z "${BASE_URL}" || -z "${API_TOKEN}" ]]; then
+            echo "Missing BASE_URL/API_TOKEN secrets -> skipping external tests."
             exit 0
           fi
+          echo "Secrets OK."
 
-          if [[ "${{ github.event.inputs.include_concurrency }}" == "true" ]]; then
-            echo "Manual run including concurrency..."
-            uv run pytest -m "external" -q
-          else
-            echo "Manual run excluding concurrency..."
-            uv run pytest -m "external and not concurrency" -q
+      - name: Basic API reachability (GET /users)
+        shell: bash
+        run: |
+          if [[ -z "${BASE_URL}" || -z "${API_TOKEN}" ]]; then
+            exit 0
           fi
+          python - <<'PY'
+          import os, requests
+          base = os.environ["BASE_URL"].rstrip("/")
+          token = os.environ["API_TOKEN"]
+          r = requests.get(base, headers={"Authorization": f"Bearer {token}"}, timeout=10)
+          print("GET", base, "->", r.status_code)
+          # don't fail the whole workflow for flaky upstream; just show signal
+          PY
+
+  external-signal:
+    name: External — signal (no stress)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    needs: [smoke]
+
+    env:
+      BASE_URL: ${{ secrets.BASE_URL }}
+      API_TOKEN: ${{ secrets.API_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version-file: pyproject.toml
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --extra test
+
+      - name: Pytest (external signal)
+        shell: bash
+        run: |
+          if [[ -z "${BASE_URL}" || -z "${API_TOKEN}" ]]; then
+            echo "Missing BASE_URL/API_TOKEN secrets -> skipping."
+            exit 0
+          fi
+          uv run pytest -m "external and not concurrency" -q
+
+  concurrency:
+    name: External — concurrency/stress (manual only)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    needs: [external-signal]
+
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.include_concurrency == 'true' }}
+
+    env:
+      BASE_URL: ${{ secrets.BASE_URL }}
+      API_TOKEN: ${{ secrets.API_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version-file: pyproject.toml
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --extra test
+
+      - name: Pytest (concurrency)
+        shell: bash
+        run: |
+          if [[ -z "${BASE_URL}" || -z "${API_TOKEN}" ]]; then
+            echo "Missing BASE_URL/API_TOKEN secrets -> skipping."
+            exit 0
+          fi
+          uv run pytest -m "concurrency" -q
