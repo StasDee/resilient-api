@@ -40,10 +40,9 @@ jobs:
         run: uv run ruff check .
 
   typecheck:
-    name: Mypy (optional)
+    name: Mypy
     runs-on: ubuntu-latest
     needs: [lint]
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 
@@ -64,9 +63,9 @@ jobs:
         run: uv run mypy .
 
   tests-stable:
-    name: Tests — stable (no external)
+    name: Tests — stable
     runs-on: ubuntu-latest
-    needs: [lint]
+    needs: [typecheck]
     steps:
       - uses: actions/checkout@v4
 
