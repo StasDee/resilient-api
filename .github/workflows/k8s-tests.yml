@@ -3,14 +3,99 @@ name: legacy-k8s-tests (manual)
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: legacy-k8s-tests-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
-  k8s-tests:
+  stable:
+    name: Stable — local tests (no external)
     runs-on: ubuntu-latest
-    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version-file: pyproject.toml
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --extra test
+
+      - name: Pytest (stable)
+        run: uv run pytest -m "not external and not concurrency" -q
+
+  external-signal:
+    name: External — signal (no stress)
+    runs-on: ubuntu-latest
+    needs: [stable]
+
+    env:
+      BASE_URL: ${{ secrets.BASE_URL }}
+      API_TOKEN: ${{ secrets.API_TOKEN }}
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version-file: pyproject.toml
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --extra test
+
+      - name: Check secrets present
+        shell: bash
+        run: |
+          if [[ -z "${BASE_URL}" || -z "${API_TOKEN}" ]]; then
+            echo "Missing BASE_URL/API_TOKEN secrets -> skipping external signal."
+            exit 0
+          fi
+          echo "Secrets OK."
+
+      - name: Pytest (external signal)
+        shell: bash
+        run: |
+          if [[ -z "${BASE_URL}" || -z "${API_TOKEN}" ]]; then
+            exit 0
+          fi
+          uv run pytest -m "external and not concurrency" -q
+
+  legacy-k8s:
+    name: Legacy K8s — concurrency/stress (expected to fail)
+    runs-on: ubuntu-latest
+    needs: [external-signal]
+    continue-on-error: false
+
+    env:
+      BASE_URL: ${{ secrets.BASE_URL }}
+      API_TOKEN: ${{ secrets.API_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check secrets present
+        shell: bash
+        run: |
+          if [[ -z "${BASE_URL}" || -z "${API_TOKEN}" ]]; then
+            echo "Missing BASE_URL/API_TOKEN secrets -> skipping k8s legacy tests."
+            exit 0
+          fi
+          echo "Secrets OK."
 
       - name: Set up kubectl
         uses: azure/setup-kubectl@v4
@@ -28,7 +113,7 @@ jobs:
           kubectl version --client
           kind --version
 
-      - name: Run Kubernetes tests (manual, allowed to fail)
+      - name: Run Kubernetes tests (should fail workflow if failing)
         env:
           BASE_URL: ${{ secrets.BASE_URL }}
           API_TOKEN: ${{ secrets.API_TOKEN }}
