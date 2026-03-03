@@ -59,12 +59,20 @@ jobs:
           if [[ -z "${BASE_URL}" || -z "${API_TOKEN}" ]]; then
             exit 0
           fi
-          python - <<'PY'
-          import os, requests
+          uv run python - <<'PY'
+          import os
+          import requests
+
           base = os.environ["BASE_URL"].rstrip("/")
           token = os.environ["API_TOKEN"]
-          r = requests.get(base, headers={"Authorization": f"Bearer {token}"}, timeout=10)
-          print("GET", base, "->", r.status_code)
+          url = f"{base}/users"
+
+          r = requests.get(
+              url,
+              headers={"Authorization": f"Bearer {token}"},
+              timeout=10,
+          )
+          print("GET", url, "->", r.status_code)
           # don't fail the whole workflow for flaky upstream; just show signal
           PY
 
